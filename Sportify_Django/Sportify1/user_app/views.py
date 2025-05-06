@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate, logout
@@ -76,7 +76,6 @@ def profile(request):
     if request.method == 'POST':
         if 'update_user' in request.POST:
             u_form = UserUpdateForm(request.POST, instance=request.user)
-            a_form = AddressForm(instance=Address.objects.filter(user=request.user).first())
             if u_form.is_valid():
                 u_form.save()
                 messages.success(request, 'Your personal information has been updated!')
@@ -85,32 +84,66 @@ def profile(request):
                 for field, errors in u_form.errors.items():
                     for error in errors:
                         messages.error(request, f"{field}: {error}")
-        
-        elif 'update_address' in request.POST:
-            u_form = UserUpdateForm(instance=request.user)
-            address_instance = Address.objects.filter(user=request.user).first()
-            a_form = AddressForm(request.POST, instance=address_instance)
-            if a_form.is_valid():
-                address = a_form.save(commit=False)
-                if not address_instance:
-                    address.user = request.user
-                address.save()
-                messages.success(request, 'Your address has been updated!')
-                return redirect('index')
-            else:
-                for field, errors in a_form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
     else:
         u_form = UserUpdateForm(instance=request.user)
-        address_instance = Address.objects.filter(user=request.user).first()
-        a_form = AddressForm(instance=address_instance)
-
+    
+    addresses = Address.objects.filter(user=request.user)
     context = {
         'u_form': u_form,
-        'a_form': a_form
+        'addresses': addresses,
     }
     return render(request, 'user_app/profile.html', context)
+
+@login_required
+def address_list(request):
+    addresses = Address.objects.filter(user=request.user).order_by('-is_default', 'id')
+    return render(request, 'user_app/address_list.html', {'addresses': addresses})
+
+@login_required
+def address_create(request):
+    if request.method == 'POST':
+        form = AddressForm(request.POST)
+        if form.is_valid():
+            address = form.save(commit=False)
+            address.user = request.user
+            address.save()
+            messages.success(request, 'Address added successfully!')
+            return redirect('address_list')
+    else:
+        form = AddressForm()
+    return render(request, 'user_app/address_form.html', {'form': form, 'title': 'Add New Address'})
+
+@login_required
+def address_edit(request, pk):
+    address = get_object_or_404(Address, pk=pk, user=request.user)
+    if request.method == 'POST':
+        form = AddressForm(request.POST, instance=address)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Address updated successfully!')
+            return redirect('address_list')
+    else:
+        form = AddressForm(instance=address)
+    return render(request, 'user_app/address_form.html', {'form': form, 'title': 'Edit Address'})
+
+@login_required
+def address_delete(request, pk):
+    address = get_object_or_404(Address, pk=pk, user=request.user)
+    if address.is_default:
+        messages.error(request, "Cannot delete default address!")
+        return redirect('address_list')
+    address.delete()
+    messages.success(request, 'Address deleted successfully!')
+    return redirect('address_list')
+
+@login_required
+def set_default_address(request, pk):
+    address = get_object_or_404(Address, pk=pk, user=request.user)
+    Address.objects.filter(user=request.user).update(is_default=False)
+    address.is_default = True
+    address.save()
+    messages.success(request, 'Default address updated successfully!')
+    return redirect('address_list')
 
 
 def index(request):

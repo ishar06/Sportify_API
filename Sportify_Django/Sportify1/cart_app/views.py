@@ -146,17 +146,17 @@ def checkout(request):
             messages.error(request, f"Sorry, we only have {item.product.stock} of {item.product.title} in stock.")
             return redirect('cart')
     
-    try:
-        address = Address.objects.get(user=request.user)
-    except Address.DoesNotExist:
+    addresses = Address.objects.filter(user=request.user)
+    if not addresses:
         messages.warning(request, 'Please add a shipping address before checkout!')
-        address = None
+        return redirect('address_create')
     
     total = sum(item.get_total_price() for item in cart_items)
     
     if request.method == 'POST':
-        form = CheckoutForm(request.POST)
+        form = CheckoutForm(request.POST, user=request.user)
         if form.is_valid():
+            selected_address = form.cleaned_data['shipping_address']
             payment_method = form.cleaned_data['payment_method']
             
             # Create order
@@ -164,7 +164,7 @@ def checkout(request):
                 user=request.user,
                 total_amount=total,
                 payment_method=payment_method,
-                shipping_address=address.get_full_address()
+                shipping_address=selected_address.get_full_address()
             )
             
             # Create order items and update stock
@@ -191,12 +191,16 @@ def checkout(request):
             for error in form.non_field_errors():
                 messages.error(request, error)
     else:
-        form = CheckoutForm()
+        form = CheckoutForm(user=request.user)
+        # Pre-select the default address if one exists
+        default_address = addresses.filter(is_default=True).first()
+        if default_address:
+            form.initial['shipping_address'] = default_address.id
     
     return render(request, 'cart_app/checkout.html', {
         'cart_items': cart_items,
         'total': total,
-        'address': address,
+        'addresses': addresses,
         'form': form
     })
 

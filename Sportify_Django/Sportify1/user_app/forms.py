@@ -65,53 +65,21 @@ class UserRegisterForm(UserCreationForm):
         return user
 
 class UserUpdateForm(forms.ModelForm):
-    name = forms.CharField(max_length=100)
-    email = forms.EmailField()
-    phone_number = forms.CharField(
-        max_length=15,
-        validators=[
-            RegexValidator(
-                regex=r'^\d{10}$',
-                message='Phone number must be 10 digits.',
-                code='invalid_phone'
-            )
-        ]
-    )
-
     class Meta:
         model = User
-        fields = ['name', 'email', 'phone_number']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Add Bootstrap classes to form fields
-        for field_name in self.fields:
-            self.fields[field_name].widget.attrs.update({'class': 'form-control'})
-        
-        if self.instance:
-            self.fields['name'].initial = self.instance.first_name
-            self.fields['email'].initial = self.instance.email
-            # Phone number would be stored in profile or as a separate field
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.username = self.cleaned_data['email']
-        user.email = self.cleaned_data['email']
-        user.first_name = self.cleaned_data['name']
-        
-        if commit:
-            user.save()
-        return user
+        fields = ['first_name', 'email']
 
 class AddressForm(forms.ModelForm):
     class Meta:
         model = Address
-        fields = ['house_street', 'landmark', 'pincode', 'state']
+        fields = ['address_type', 'house_street', 'landmark', 'pincode', 'state', 'is_default']
         widgets = {
+            'address_type': forms.Select(attrs={'class': 'form-control'}),
             'house_street': forms.TextInput(attrs={'class': 'form-control'}),
             'landmark': forms.TextInput(attrs={'class': 'form-control'}),
             'pincode': forms.TextInput(attrs={'class': 'form-control'}),
             'state': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_default': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 class SubscriptionForm(forms.Form):

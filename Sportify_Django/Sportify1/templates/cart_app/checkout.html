@@ -1,162 +1,148 @@
-
-
-
 {% extends 'base.html' %}
 
 {% block title %}Checkout | Sportify{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Checkout</h1>
+<div class="container mt-4">
+    <h2>Checkout</h2>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Shipping Address</h5>
-            </div>
-            <div class="card-body">
-                {% if address %}
-                    <p>
-                        <strong>{{ user.first_name }}</strong><br>
-                        {{ address.house_street }}<br>
-                        {% if address.landmark %}{{ address.landmark }}<br>{% endif %}
-                        {{ address.pincode }}, {{ address.state }}
-                    </p>
-                    <a href="{% url 'profile' %}#address-section" class="btn btn-outline-secondary btn-sm">Edit Address</a>
-                {% else %}
-                    <div class="alert alert-warning">
-                        You need to add a shipping address before proceeding to payment.
-                    </div>
-                    <a href="{% url 'profile' %}#address-section" class="btn btn-primary">Add Address</a>
-                {% endif %}
-            </div>
-        </div>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
 
-        <div class="card mb-4 {% if not address %}disabled-section{% endif %}">
-            <div class="card-header">
-                <h5 class="mb-0">Payment Method</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'checkout' %}" id="payment-form">
-                    {% csrf_token %}
-                    
-                    <fieldset {% if not address %}disabled{% endif %}>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="payment_method" id="card" value="card" checked>
-                            <label class="form-check-label" for="card">
-                                Credit/Debit Card
-                            </label>
-                        </div>
-                        
-                        <div id="card-details" class="mb-3">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="card_number" class="form-label">Card Number</label>
-                                    <input type="text" class="form-control" id="card_number" name="card_number" placeholder="1234 5678 9012 3456" pattern="[0-9]{16}">
-                                    <small class="text-muted">16 digits, no spaces</small>
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label for="expiry_date" class="form-label">Expiry Date</label>
-                                    <input type="text" class="form-control" id="expiry_date" name="expiry_date" placeholder="MM/YY">
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label for="cvv" class="form-label">CVV</label>
-                                    <input type="text" class="form-control" id="cvv" name="cvv" placeholder="123" pattern="[0-9]{3}">
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="card_name" class="form-label">Name on Card</label>
-                                <input type="text" class="form-control" id="card_name" name="card_name">
-                            </div>
-                        </div>
-                        
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="payment_method" id="cod" value="cod">
-                            <label class="form-check-label" for="cod">
-                                Cash on Delivery
-                            </label>
-                        </div>
-                        
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="payment_method" id="gift_card" value="gift_card">
-                            <label class="form-check-label" for="gift_card">
-                                Gift Card
-                            </label>
-                        </div>
-                        
-                        <div id="gift-card-details" class="mb-3 d-none">
-                            <label for="gift_card_number" class="form-label">Gift Card Number</label>
-                            <input type="text" class="form-control" id="gift_card_number" name="gift_card_number">
-                        </div>
-                        
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="payment_method" id="coupon" value="coupon">
-                            <label class="form-check-label" for="coupon">
-                                Coupon
-                            </label>
-                        </div>
-                        
-                        <div id="coupon-details" class="mb-3 d-none">
-                            <label for="coupon_code" class="form-label">Coupon Code</label>
-                            <input type="text" class="form-control" id="coupon_code" name="coupon_code">
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary mt-3">Place Order</button>
-                    </fieldset>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Order Summary</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    {% for item in cart_items %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+    <div class="row">
+        <!-- Cart Summary -->
+        <div class="col-md-4 order-md-2 mb-4">
+            <h4 class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted">Your Cart</span>
+                <span class="badge bg-primary rounded-pill">{{ cart_items.count }}</span>
+            </h4>
+            <ul class="list-group mb-3">
+                {% for item in cart_items %}
+                    <li class="list-group-item d-flex justify-content-between lh-sm">
                         <div>
-                            <span>{{ item.product.title }}</span>
-                            <small class="d-block text-muted">Quantity: {{ item.quantity }}</small>
+                            <h6 class="my-0">{{ item.product.title }}</h6>
+                            <small class="text-muted">Quantity: {{ item.quantity }}</small>
                         </div>
-                        <span>{{ item.get_total_price }}/-</span>
+                        <span class="text-muted">₹{{ item.get_total_price }}</span>
                     </li>
+                {% endfor %}
+                <li class="list-group-item d-flex justify-content-between">
+                    <strong>Total</strong>
+                    <strong>₹{{ total }}</strong>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Checkout Form -->
+        <div class="col-md-8 order-md-1">
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Address Selection -->
+                <h4 class="mb-3">Shipping Address</h4>
+                <div class="mb-4">
+                    {% for address in addresses %}
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="shipping_address" 
+                                   value="{{ address.id }}" id="address_{{ address.id }}"
+                                   {% if form.initial.shipping_address == address.id %}checked{% endif %}
+                                   required>
+                            <label class="form-check-label" for="address_{{ address.id }}">
+                                <strong>{{ address.get_address_type_display }}</strong>
+                                {% if address.is_default %}<span class="badge bg-primary">Default</span>{% endif %}
+                                <br>
+                                {{ address.house_street }}<br>
+                                {% if address.landmark %}{{ address.landmark }}<br>{% endif %}
+                                {{ address.state }} - {{ address.pincode }}
+                            </label>
+                        </div>
                     {% endfor %}
-                </ul>
-                <hr>
-                <div class="d-flex justify-content-between">
-                    <span>Total:</span>
-                    <strong>{{ total }}/-</strong>
+                    <a href="{% url 'address_create' %}" class="btn btn-outline-primary btn-sm">Add New Address</a>
                 </div>
-            </div>
+
+                <!-- Payment Method -->
+                <h4 class="mb-3">Payment Method</h4>
+                <div class="mb-4">
+                    {% for value, label in form.payment_method.field.choices %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method"
+                                   value="{{ value }}" id="payment_{{ value }}" required>
+                            <label class="form-check-label" for="payment_{{ value }}">
+                                {{ label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Card Details (initially hidden) -->
+                <div id="card-details" style="display: none;">
+                    <h4 class="mb-3">Card Details</h4>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.card_number.id_for_label }}">Card Number</label>
+                            {{ form.card_number }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.expiry_date.id_for_label }}">Expiry Date</label>
+                            {{ form.expiry_date }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.cvv.id_for_label }}">CVV</label>
+                            {{ form.cvv }}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="{{ form.card_name.id_for_label }}">Name on Card</label>
+                            {{ form.card_name }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gift Card Details (initially hidden) -->
+                <div id="gift-card-details" style="display: none;">
+                    <h4 class="mb-3">Gift Card Details</h4>
+                    <div class="mb-3">
+                        <label for="{{ form.gift_card_number.id_for_label }}">Gift Card Number</label>
+                        {{ form.gift_card_number }}
+                    </div>
+                </div>
+
+                <!-- Coupon Details (initially hidden) -->
+                <div id="coupon-details" style="display: none;">
+                    <h4 class="mb-3">Coupon Details</h4>
+                    <div class="mb-3">
+                        <label for="{{ form.coupon_code.id_for_label }}">Coupon Code</label>
+                        {{ form.coupon_code }}
+                    </div>
+                </div>
+
+                <hr class="mb-4">
+                <button class="btn btn-primary btn-lg btn-block w-100" type="submit">Place Order</button>
+            </form>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
-        const cardDetails = document.getElementById('card-details');
-        const giftCardDetails = document.getElementById('gift-card-details');
-        const couponDetails = document.getElementById('coupon-details');
+    // Show/hide payment details based on selected payment method
+    document.querySelectorAll('input[name="payment_method"]').forEach(input => {
+        input.addEventListener('change', function() {
+            // Hide all payment detail sections
+            document.getElementById('card-details').style.display = 'none';
+            document.getElementById('gift-card-details').style.display = 'none';
+            document.getElementById('coupon-details').style.display = 'none';
 
-        function togglePaymentSections() {
-            cardDetails.classList.add('d-none');
-            giftCardDetails.classList.add('d-none');
-            couponDetails.classList.add('d-none');
-
-            const selected = document.querySelector('input[name="payment_method"]:checked').value;
-            if (selected === 'card') cardDetails.classList.remove('d-none');
-            if (selected === 'gift_card') giftCardDetails.classList.remove('d-none');
-            if (selected === 'coupon') couponDetails.classList.remove('d-none');
-        }
-
-        paymentMethods.forEach(method => method.addEventListener('change', togglePaymentSections));
-        togglePaymentSections(); // Initialize on page load
+            // Show relevant section based on selection
+            if (this.value === 'card') {
+                document.getElementById('card-details').style.display = 'block';
+            } else if (this.value === 'gift_card') {
+                document.getElementById('gift-card-details').style.display = 'block';
+            } else if (this.value === 'coupon') {
+                document.getElementById('coupon-details').style.display = 'block';
+            }
+        });
     });
 </script>
 {% endblock %}

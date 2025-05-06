@@ -1,6 +1,7 @@
 from django import forms
 from django.core.validators import RegexValidator
 from .models import Product, Category, Subscription
+from user_app.models import Address
 
 class ProductForm(forms.ModelForm):
     class Meta:
@@ -33,6 +34,11 @@ class CheckoutForm(forms.Form):
         ('coupon', 'Coupon'),
     )
     
+    shipping_address = forms.ModelChoiceField(
+        queryset=Address.objects.none(),
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        empty_label=None
+    )
     payment_method = forms.ChoiceField(
         choices=PAYMENT_CHOICES,
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
@@ -90,6 +96,11 @@ class CheckoutForm(forms.Form):
         max_length=20,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
+    
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['shipping_address'].queryset = Address.objects.filter(user=user)
     
     def clean(self):
         cleaned_data = super().clean()
