@@ -5,14 +5,27 @@ from werkzeug.security import generate_password_hash, check_password_hash  # Imp
 from functools import wraps
 from datetime import datetime
 import os
+from flask_cors import CORS
+import logging
+
+# Add logging configuration
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Initialize Flask app
 app = Flask(__name__)
+CORS(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, "app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATION"] = False
-app.config['SECRET_KEY'] = 'your_secret_key'  
+app.config['SECRET_KEY'] = 'your_secret_key'
+
+@app.context_processor
+def utility_processor():
+    def get_static_url(filename):
+        return f'http://127.0.0.1:5000/static/{filename.lstrip("/")}'
+    return dict(get_static_url=get_static_url)
 
 db = SQLAlchemy(app)
 
@@ -222,7 +235,13 @@ def inject_user_address():
 
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    return render_template('about.html', _is_api=False)
+
+@app.route('/api/about')
+def about_api():
+    return jsonify({
+        'content': render_template('about.html', _is_api=True)
+    })
 
 @app.route('/tc')
 def tc():
@@ -238,7 +257,20 @@ def exchangePolicy():
 
 @app.route('/blogs')
 def blogs():
-    return render_template('blogs.html')
+    return render_template('blogs.html', _is_api=False)
+
+@app.route('/api/blogs')
+def blogs_api():
+    try:
+        logger.debug('Rendering blogs.html with _is_api=True')
+        content = render_template('blogs.html', _is_api=True)
+        logger.debug('Successfully rendered blogs.html')
+        return jsonify({
+            'content': content
+        })
+    except Exception as e:
+        logger.error(f'Error in blogs_api: {str(e)}')
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/csr')
 def csr():

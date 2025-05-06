@@ -5,6 +5,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from .forms import UserRegisterForm, UserUpdateForm, AddressForm
 from .models import Address
+import requests
 
 def login_view(request):
     if request.method == 'POST':
@@ -137,4 +138,41 @@ def index(request):
     }
     
     return render(request, 'index.html', context)
+
+
+def about(request):
+    try:
+        # Fetch content from Flask API
+        response = requests.get('http://127.0.0.1:5000/api/about')
+        response.raise_for_status()
+        flask_content = response.json()['content']
+        return render(request, 'user_app/about.html', {'flask_content': flask_content})
+    except Exception as e:
+        return render(request, 'user_app/about.html', {'error': str(e)})
+
+
+def blogs(request):
+    try:
+        # Add timeout to prevent hanging
+        response = requests.get('http://127.0.0.1:5000/api/blogs', timeout=5)
+        
+        # Check if the response was successful
+        if response.status_code != 200:
+            error_message = f'Error fetching content: HTTP {response.status_code}'
+            if response.status_code == 500:
+                error_message = 'Internal Server Error: Please make sure the Flask server is running correctly'
+            return render(request, 'user_app/blogs.html', {'error': error_message})
+            
+        flask_content = response.json()['content']
+        return render(request, 'user_app/blogs.html', {'flask_content': flask_content})
+    except requests.Timeout:
+        return render(request, 'user_app/blogs.html', {
+            'error': 'Request timed out. Please check if the Flask server is running.'
+        })
+    except requests.ConnectionError:
+        return render(request, 'user_app/blogs.html', {
+            'error': 'Could not connect to Flask server. Please make sure it is running.'
+        })
+    except Exception as e:
+        return render(request, 'user_app/blogs.html', {'error': str(e)})
 
