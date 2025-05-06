@@ -16,7 +16,13 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://127.0.0.1:8000"],
+        "allow_headers": ["Content-Type"],
+        "methods": ["GET", "POST", "OPTIONS"]
+    }
+})
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, "app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATION"] = False
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -274,7 +280,20 @@ def blogs_api():
 
 @app.route('/csr')
 def csr():
-    return render_template('csr.html')
+    return render_template('csr.html', _is_api=False)
+
+@app.route('/api/csr')
+def csr_api():
+    try:
+        # We pass _is_api=True to use the empty.html template
+        content = render_template('csr.html', _is_api=True)
+        # Return just the main content div
+        return jsonify({
+            'content': content
+        })
+    except Exception as e:
+        logger.error(f'Error in csr_api: {str(e)}')
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/basketball')
 def basketball():

@@ -7,6 +7,7 @@ from django.urls import reverse
 from .models import Category, Product, CartItem, Order, OrderItem, Subscription
 from user_app.models import Address
 from .forms import CheckoutForm, SubscriptionForm
+import requests
 
 
 def index(request):
@@ -220,7 +221,27 @@ def blogs(request):
     return render(request, 'cart_app/blogs.html')
 
 def csr(request):
-    return render(request, 'cart_app/csr.html')
+    try:
+        # Fetch CSR content from Flask API
+        response = requests.get('http://127.0.0.1:5000/api/csr', timeout=5)
+        if response.status_code == 200:
+            content = response.json().get('content', '')
+            if content:
+                return render(request, 'cart_app/csr.html', {'flask_content': content})
+            else:
+                messages.error(request, 'No content received from Flask API')
+        else:
+            messages.error(request, f'Failed to fetch CSR content. Status code: {response.status_code}')
+        return render(request, 'cart_app/csr.html')
+    except requests.exceptions.ConnectionError:
+        messages.error(request, 'Could not connect to Flask server. Please ensure it is running.')
+        return render(request, 'cart_app/csr.html')
+    except requests.exceptions.Timeout:
+        messages.error(request, 'Request to Flask server timed out. Please try again.')
+        return render(request, 'cart_app/csr.html')
+    except Exception as e:
+        messages.error(request, f'Unexpected error: {str(e)}')
+        return render(request, 'cart_app/csr.html')
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
