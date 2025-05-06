@@ -215,7 +215,29 @@ def privacy_policy(request):
     return render(request, 'cart_app/privacy_policy.html')
 
 def exchange_policy(request):
-    return render(request, 'cart_app/exchange_policy.html')
+    try:
+        # Fetch exchange policy content from Flask API
+        response = requests.get('http://127.0.0.1:5000/api/exchange-policy', timeout=5)
+        if response.status_code == 200:
+            content = response.json().get('content', '')
+            if content:
+                # Replace Flask static URLs with the correct Flask server URL
+                content = content.replace('static/', 'http://127.0.0.1:5000/static/')
+                return render(request, 'cart_app/exchange_policy.html', {'flask_content': content})
+            else:
+                messages.error(request, 'No content received from Flask API')
+        else:
+            messages.error(request, f'Failed to fetch exchange policy content. Status code: {response.status_code}')
+        return render(request, 'cart_app/exchange_policy.html')
+    except requests.exceptions.ConnectionError:
+        messages.error(request, 'Could not connect to Flask server. Please ensure it is running.')
+        return render(request, 'cart_app/exchange_policy.html')
+    except requests.exceptions.Timeout:
+        messages.error(request, 'Request to Flask server timed out. Please try again.')
+        return render(request, 'cart_app/exchange_policy.html')
+    except Exception as e:
+        messages.error(request, f'Unexpected error: {str(e)}')
+        return render(request, 'cart_app/exchange_policy.html')
 
 def blogs(request):
     return render(request, 'cart_app/blogs.html')

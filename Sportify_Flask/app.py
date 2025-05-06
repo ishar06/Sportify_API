@@ -261,6 +261,18 @@ def privacyPolicy():
 def exchangePolicy():
     return render_template('exchangePolicy.html')
 
+@app.route('/api/exchange-policy')
+def exchange_policy_api():
+    try:
+        # Render the template with _is_api=True to skip base template
+        content = render_template('exchangePolicy.html', _is_api=True)
+        return jsonify({
+            'content': content
+        })
+    except Exception as e:
+        logger.error(f'Error in exchange_policy_api: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/blogs')
 def blogs():
     return render_template('blogs.html', _is_api=False)
